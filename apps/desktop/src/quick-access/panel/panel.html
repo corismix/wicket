@@ -209,7 +209,7 @@
       <div id="results"></div>
       <div id="status-view"></div>
       <div id="footer">
-        <span><kbd>&#8593;</kbd><kbd>&#8595;</kbd> navigate &nbsp; <kbd>&#8629;</kbd> copy password &nbsp; <kbd>&#8984;/Ctrl</kbd>+<kbd>&#8629;</kbd> copy username</span>
+        <span><kbd>&#8593;</kbd><kbd>&#8595;</kbd> navigate &nbsp; <kbd>&#8629;</kbd> copy password &nbsp; <kbd>&#8984;/Ctrl</kbd>+<kbd>&#8629;</kbd> copy username &nbsp; <kbd>&#8984;/Ctrl</kbd>+<kbd>O</kbd> open</span>
         <span id="shortcut-label"></span>
       </div>
     </div>
@@ -315,6 +315,13 @@
         }
       }
 
+      function openSelected() {
+        const item = filtered[selectedIndex];
+        if (item) {
+          window.quickAccess.openItem(item.id);
+        }
+      }
+
       function showToast(message) {
         toastEl.textContent = message;
         toastEl.classList.add("visible");
@@ -350,6 +357,9 @@
         } else if (e.key === "Enter") {
           e.preventDefault();
           copySelected(e.metaKey || e.ctrlKey ? "username" : "password");
+        } else if ((e.metaKey || e.ctrlKey) && (e.key === "o" || e.key === "O")) {
+          e.preventDefault();
+          openSelected();
         } else if (e.key === "Escape") {
           e.preventDefault();
           window.quickAccess.hide();
@@ -361,6 +371,14 @@
         if (row) {
           selectedIndex = Number(row.dataset.index);
           copySelected("password");
+        }
+      });
+
+      resultsEl.addEventListener("dblclick", (e) => {
+        const row = e.target.closest(".item");
+        if (row) {
+          selectedIndex = Number(row.dataset.index);
+          openSelected();
         }
       });
 

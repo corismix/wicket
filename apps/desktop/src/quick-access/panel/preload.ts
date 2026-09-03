@@ -30,6 +30,9 @@ const quickAccess = {
   hide: () => {
     ipcRenderer.send(QUICK_ACCESS_IPC_CHANNELS.HIDE);
   },
+  openItem: (id: string) => {
+    ipcRenderer.send(QUICK_ACCESS_IPC_CHANNELS.OPEN_ITEM, { id });
+  },
   getShortcut: (): Promise<string> => ipcRenderer.invoke(QUICK_ACCESS_IPC_CHANNELS.GET_SHORTCUT),
   setShortcut: (accelerator: string): Promise<{ ok: boolean; accelerator: string }> =>
     ipcRenderer.invoke(QUICK_ACCESS_IPC_CHANNELS.SET_SHORTCUT, accelerator),

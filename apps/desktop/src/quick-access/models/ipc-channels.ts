@@ -20,6 +20,12 @@ export const QUICK_ACCESS_IPC_CHANNELS = {
   GET_SHORTCUT: "quick-access.getShortcut",
   /** Panel -> main (invoke): set + persist a new global shortcut accelerator. */
   SET_SHORTCUT: "quick-access.setShortcut",
+  /** Renderer (main window) -> main: suspend/resume hotkey registration while capturing a new one. */
+  SET_SUSPENDED: "quick-access.setSuspended",
+  /** Panel -> main: open a vault item in the main window. */
+  OPEN_ITEM: "quick-access.openItem",
+  /** Main -> renderer (main window): navigate to + view a vault item. */
+  OPEN_ITEM_REQUEST: "quick-access.openItemRequest",
 } as const;
 
 export type QuickAccessStatus = "loggedOut" | "locked" | "unlocked";

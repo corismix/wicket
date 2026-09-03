@@ -31,6 +31,7 @@ const PANEL_HEIGHT = 440;
 export class MainDesktopQuickAccessService {
   private panel: BrowserWindow | null = null;
   private accelerator = DEFAULT_SHORTCUT;
+  private suspended = false;
   private state: QuickAccessState = { status: "loggedOut", items: [] };
 
   constructor(
@@ -101,6 +102,21 @@ export class MainDesktopQuickAccessService {
 
     ipcMain.handle(QUICK_ACCESS_IPC_CHANNELS.GET_SHORTCUT, () => this.accelerator);
 
+    ipcMain.on(QUICK_ACCESS_IPC_CHANNELS.SET_SUSPENDED, (_event, suspended: boolean) => {
+      this.suspended = suspended === true;
+      if (this.suspended) {
+        if (globalShortcut.isRegistered(this.accelerator)) {
+          globalShortcut.unregister(this.accelerator);
+        }
+      } else {
+        this.registerShortcut();
+      }
+    });
+
+    ipcMain.on(QUICK_ACCESS_IPC_CHANNELS.OPEN_ITEM, (_event, request: { id: string }) => {
+      void this.openItemInMainWindow(request?.id);
+    });
+
     ipcMain.handle(QUICK_ACCESS_IPC_CHANNELS.SET_SHORTCUT, async (_event, accelerator: string) => {
       if (typeof accelerator !== "string" || accelerator.length === 0) {
         return { ok: false, accelerator: this.accelerator };
@@ -131,6 +147,9 @@ export class MainDesktopQuickAccessService {
   }
 
   private registerShortcut(): boolean {
+    if (this.suspended) {
+      return true;
+    }
     const result = globalShortcut.register(this.accelerator, () => this.togglePanel());
     if (result) {
       this.logService.debug("Quick Access hotkey registered: " + this.accelerator);
@@ -147,6 +166,30 @@ export class MainDesktopQuickAccessService {
     }
 
     void this.showPanel();
+  }
+
+  private async openItemInMainWindow(id: string) {
+    if (typeof id !== "string" || id.length === 0) {
+      return;
+    }
+
+    if (this.windowMain.win == null || this.windowMain.win.isDestroyed()) {
+      await this.windowMain.createWindow("full-app");
+    }
+
+    const win = this.windowMain.win;
+    if (win == null) {
+      this.logService.error("Quick Access open-item failed: main window could not be created.");
+      return;
+    }
+
+    if (win.isMinimized()) {
+      win.restore();
+    }
+    win.show();
+    win.focus();
+
+    win.webContents.send(QUICK_ACCESS_IPC_CHANNELS.OPEN_ITEM_REQUEST, { id });
   }
 
   private async showPanel() {

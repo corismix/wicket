@@ -158,6 +158,27 @@
         }
 
         <bit-form-control>
+          <bit-label>
+            <span class="tw-flex tw-items-center tw-gap-2">
+              {{ "quickAccessHotkey" | i18n }}
+              <code>{{ form.value.quickAccessShortcut }}</code>
+            </span>
+          </bit-label>
+          <bit-hint>
+            {{ "quickAccessHotkeyDesc" | i18n }}
+            <a
+              class="tw-cursor-pointer"
+              bitLink
+              tabindex="0"
+              (click)="saveQuickAccessShortcut(); $event.preventDefault()"
+              (keydown.enter)="saveQuickAccessShortcut(); $event.preventDefault()"
+            >
+              {{ "editShortcut" | i18n }}
+            </a>
+          </bit-hint>
+        </bit-form-control>
+
+        <bit-form-control>
           <input
             type="checkbox"
             bitCheckbox

@@ -487,6 +487,17 @@ export class VaultComponent<C extends CipherViewLike> implements OnInit, OnDestr
               (document.querySelector("bit-search input") as HTMLInputElement)?.select();
               detectChanges = false;
               break;
+            case "quickAccessViewCipher": {
+              // Wicket Quick Access: open a vault item by id (view/edit dialog).
+              const views = await firstValueFrom(
+                this.cipherService.cipherViews$(this.activeUserId),
+              );
+              const target = views?.find((c) => c.id === message.cipherId);
+              if (target != null) {
+                await this.viewCipher(target);
+              }
+              break;
+            }
             case "syncCompleted":
               if (message.successfully) {
                 if (this.activeUserId) {

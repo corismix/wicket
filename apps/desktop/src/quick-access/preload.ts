@@ -25,6 +25,17 @@ const quickAccess = {
   sendCopyResult: (result: QuickAccessCopyResult) => {
     ipcRenderer.send(QUICK_ACCESS_IPC_CHANNELS.COPY_RESULT, result);
   },
+  getShortcut: (): Promise<string> => ipcRenderer.invoke(QUICK_ACCESS_IPC_CHANNELS.GET_SHORTCUT),
+  setShortcut: (accelerator: string): Promise<{ ok: boolean; accelerator: string }> =>
+    ipcRenderer.invoke(QUICK_ACCESS_IPC_CHANNELS.SET_SHORTCUT, accelerator),
+  setSuspended: (suspended: boolean) => {
+    ipcRenderer.send(QUICK_ACCESS_IPC_CHANNELS.SET_SUSPENDED, suspended);
+  },
+  onOpenItemRequest: (fn: (request: { id: string }) => void) => {
+    ipcRenderer.on(QUICK_ACCESS_IPC_CHANNELS.OPEN_ITEM_REQUEST, (_event, request: { id: string }) =>
+      fn(request),
+    );
+  },
 };
 
 export default quickAccess;

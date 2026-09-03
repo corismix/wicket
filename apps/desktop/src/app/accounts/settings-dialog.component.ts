@@ -68,6 +68,8 @@ import { AutotypeShortcutComponent } from "../../autofill/components/autotype-sh
 import { SshAgentPromptType } from "../../autofill/models/ssh-agent-setting";
 import { DesktopAutofillSettingsService } from "../../autofill/services/desktop-autofill-settings.service";
 import { DesktopAutotypeMvpService } from "../../autofill/services/desktop-autotype-mvp.service";
+import { QuickAccessShortcutComponent } from "../../quick-access/components/quick-access-shortcut.component";
+import { DesktopQuickAccessService } from "../../quick-access/services/desktop-quick-access.service";
 import { DesktopPremiumUpgradePromptService } from "../../billing/services/desktop-premium-upgrade-prompt.service";
 import { DesktopBiometricsService } from "../../key-management/biometrics/desktop.biometrics.service";
 import { DesktopSettingsService } from "../../platform/services/desktop-settings.service";
@@ -125,6 +127,7 @@ export class SettingsDialogComponent implements OnInit {
   private readonly userVerificationService = inject(UserVerificationServiceAbstraction);
   private readonly desktopSettingsService = inject(DesktopSettingsService);
   private readonly desktopAutotypeMvpService = inject(DesktopAutotypeMvpService);
+  private readonly desktopQuickAccessService = inject(DesktopQuickAccessService);
   private readonly biometricStateService = inject(BiometricStateService);
   private readonly biometricsService = inject(DesktopBiometricsService);
   private readonly desktopAutofillSettingsService = inject(DesktopAutofillSettingsService);
@@ -203,6 +206,7 @@ export class SettingsDialogComponent implements OnInit {
       disabled: true,
     }),
     autotypeShortcut: [null as string | null],
+    quickAccessShortcut: [null as string | null],
     theme: [null as Theme | null],
     locale: [null as string | null],
   });
@@ -309,6 +313,9 @@ export class SettingsDialogComponent implements OnInit {
       ),
       autotypeShortcut: this.getFormattedAutotypeShortcutText(
         (await firstValueFrom(this.desktopAutotypeMvpService.autotypeKeyboardShortcut$)) ?? [],
+      ),
+      quickAccessShortcut: this.formatQuickAccessShortcut(
+        await this.desktopQuickAccessService.getShortcut(),
       ),
       theme: await firstValueFrom(this.themeStateService.selectedTheme$),
       locale: await firstValueFrom(this.i18nService.userSetLocale$),
@@ -690,6 +697,33 @@ export class SettingsDialogComponent implements OnInit {
       this.getFormattedAutotypeShortcutText(newShortcutArray),
     );
     await this.desktopAutotypeMvpService.setAutotypeKeyboardShortcutState(newShortcutArray);
+  }
+
+  protected async saveQuickAccessShortcut() {
+    // Suspend the live hotkey so pressing it inside the capture dialog doesn't
+    // summon the panel instead of being captured.
+    this.desktopQuickAccessService.setSuspended(true);
+    let newShortcutArray: string[] | undefined;
+    try {
+      const dialogRef = QuickAccessShortcutComponent.open(this.dialogService);
+      newShortcutArray = await firstValueFrom(dialogRef.closed);
+    } finally {
+      this.desktopQuickAccessService.setSuspended(false);
+    }
+
+    if (!newShortcutArray || newShortcutArray.length === 0) {
+      return;
+    }
+
+    const result = await this.desktopQuickAccessService.setShortcut(newShortcutArray.join("+"));
+    this.form.controls.quickAccessShortcut.setValue(
+      this.formatQuickAccessShortcut(result.accelerator),
+    );
+  }
+
+  private formatQuickAccessShortcut(accelerator: string): string {
+    const isMac = this.platformUtilsService.getDevice() === DeviceType.MacOsDesktop;
+    return accelerator.replace(/CommandOrControl|Super/g, isMac ? "Cmd" : "Ctrl");
   }
 
   protected get biometricText() {

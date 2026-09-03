@@ -1,4 +1,5 @@
 import { Injectable, OnDestroy } from "@angular/core";
+import { Router } from "@angular/router";
 import {
   catchError,
   combineLatest,
@@ -13,6 +14,7 @@ import {
 
 import { Account, AccountService } from "@bitwarden/common/auth/abstractions/account.service";
 import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
+import { MessageSender } from "@bitwarden/common/platform/messaging";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
@@ -41,6 +43,8 @@ export class DesktopQuickAccessService implements OnDestroy {
     private cipherService: CipherService,
     private copyCipherFieldService: CopyCipherFieldService,
     private logService: LogService,
+    private router: Router,
+    private messageSender: MessageSender,
   ) {}
 
   async init() {
@@ -100,6 +104,30 @@ export class DesktopQuickAccessService implements OnDestroy {
     ipc.quickAccess.onCopyRequest((request) => {
       void this.handleCopyRequest(request.id, request.field);
     });
+
+    ipc.quickAccess.onOpenItemRequest((request) => {
+      void this.handleOpenItemRequest(request.id);
+    });
+  }
+
+  getShortcut(): Promise<string> {
+    return ipc.quickAccess.getShortcut();
+  }
+
+  setShortcut(accelerator: string): Promise<{ ok: boolean; accelerator: string }> {
+    return ipc.quickAccess.setShortcut(accelerator);
+  }
+
+  setSuspended(suspended: boolean) {
+    ipc.quickAccess.setSuspended(suspended);
+  }
+
+  /** Open a vault item in the main window's vault view. */
+  private async handleOpenItemRequest(id: string) {
+    // The vault component owns the view/edit dialog (incl. re-prompt). Navigate there
+    // first so its broadcaster subscription is active, then ask it to open the item.
+    await this.router.navigate(["/vault"]);
+    this.messageSender.send("quickAccessViewCipher", { cipherId: id });
   }
 
   ngOnDestroy() {

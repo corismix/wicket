@@ -2500,6 +2500,18 @@
   "showAll": {
     "message": "Show all"
   },
+  "quickAccessHotkey": {
+    "message": "Quick Access hotkey",
+    "description": "Settings label for the global hotkey that opens the Quick Access search panel."
+  },
+  "quickAccessHotkeyDesc": {
+    "message": "Open a search bar over your vault from anywhere.",
+    "description": "Settings description for Quick Access."
+  },
+  "quickAccessHotkeyCaptureDesc": {
+    "message": "Type the shortcut you want to use to open Quick Access. It must include Ctrl, Alt, Shift or Cmd plus a letter or Space.",
+    "description": "Instructions shown in the Quick Access shortcut capture dialog."
+  },
   "quitBitwarden": {
     "message": "Quit Bitwarden"
   },
