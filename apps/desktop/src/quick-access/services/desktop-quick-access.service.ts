@@ -5,6 +5,7 @@ import {
   distinctUntilChanged,
   map,
   of,
+  retry,
   Subject,
   switchMap,
   takeUntil,
@@ -70,16 +71,30 @@ export class DesktopQuickAccessService implements OnDestroy {
                 };
               }
 
-              this.latestViews = views;
-              return { status: "unlocked" as const, items: views.map(toQuickAccessItem) };
+              // cipherViews$ emits null while decrypted ciphers are cleared (e.g. right
+              // after unlock, before decryption finishes) - treat as "no items yet".
+              const safeViews = views ?? [];
+              this.latestViews = safeViews;
+              return {
+                status: "unlocked" as const,
+                items: safeViews.map(toQuickAccessItem),
+              };
             }),
           );
         }),
         distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
+        // The vault state streams span lock/unlock transitions; never let one bad
+        // emission kill the bridge permanently - resubscribe instead.
+        retry(),
         takeUntil(this.destroy$),
       )
-      .subscribe((state) => {
-        ipc.quickAccess.updateState(state);
+      .subscribe({
+        next: (state) => {
+          ipc.quickAccess.updateState(state);
+        },
+        error: (e) => {
+          this.logService.error("Quick Access vault state stream died", e);
+        },
       });
 
     ipc.quickAccess.onCopyRequest((request) => {
