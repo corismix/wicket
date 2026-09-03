@@ -51,8 +51,13 @@ export class UpdaterMain {
     const windowsCanUpdate =
       process.platform === "win32" && !isWindowsStore() && !isWindowsPortable();
     const macCanUpdate = process.platform === "darwin" && !isMacAppStore();
+    // Wicket: hard-disable auto-updates. The fork has no update feed of its own, and
+    // upstream's feed would replace it with stock Bitwarden.
+    const wicketUpdatesDisabled = true;
     this.canUpdate =
-      !this.userDisabledUpdates() && (linuxCanUpdate || windowsCanUpdate || macCanUpdate);
+      !wicketUpdatesDisabled &&
+      !this.userDisabledUpdates() &&
+      (linuxCanUpdate || windowsCanUpdate || macCanUpdate);
   }
 
   async init() {

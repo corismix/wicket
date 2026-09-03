@@ -23,11 +23,6 @@
     "!node_modules/@bitwarden/desktop-napi/package.json"
   ],
   "electronVersion": "43.2.0",
-  "generateUpdatesFilesForAllChannels": true,
-  "publish": {
-    "provider": "generic",
-    "url": "https://artifacts.bitwarden.com/desktop"
-  },
   "mac": {
     "electronUpdaterCompatibility": ">=0.0.1",
     "category": "public.app-category.productivity",
