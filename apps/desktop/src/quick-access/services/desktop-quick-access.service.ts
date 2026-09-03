@@ -17,6 +17,7 @@ import { AuthService } from "@bitwarden/common/auth/abstractions/auth.service";
 import { MessageSender } from "@bitwarden/common/platform/messaging";
 import { AuthenticationStatus } from "@bitwarden/common/auth/enums/authentication-status";
 import { CipherService } from "@bitwarden/common/vault/abstractions/cipher.service";
+import { CipherRepromptType } from "@bitwarden/common/vault/enums";
 import { CipherView } from "@bitwarden/common/vault/models/view/cipher.view";
 import { LogService } from "@bitwarden/logging";
 import { CopyCipherFieldService } from "@bitwarden/vault";
@@ -108,6 +109,10 @@ export class DesktopQuickAccessService implements OnDestroy {
     ipc.quickAccess.onOpenItemRequest((request) => {
       void this.handleOpenItemRequest(request.id);
     });
+
+    ipc.quickAccess.onFillRequest((request) => {
+      void this.handleFillRequest(request.id);
+    });
   }
 
   getShortcut(): Promise<string> {
@@ -120,6 +125,34 @@ export class DesktopQuickAccessService implements OnDestroy {
 
   setSuspended(suspended: boolean) {
     ipc.quickAccess.setSuspended(suspended);
+  }
+
+  /** Supply credentials for a Quick Access autofill. */
+  private async handleFillRequest(id: string) {
+    const cipher = this.latestViews.find((view) => view.id === id);
+
+    if (cipher == null || cipher.login == null) {
+      ipc.quickAccess.sendFillExecute({ id, ok: false, reason: "That item has no login credentials." });
+      return;
+    }
+
+    // Master-password re-prompted items can't autofill from the panel: the prompt
+    // lives in the main window, which isn't in the focus loop. Use copy instead.
+    if (cipher.reprompt !== CipherRepromptType.None) {
+      ipc.quickAccess.sendFillExecute({
+        id,
+        ok: false,
+        reason: "This item requires a master password re-prompt - copy it instead.",
+      });
+      return;
+    }
+
+    ipc.quickAccess.sendFillExecute({
+      id,
+      ok: true,
+      username: cipher.login.username,
+      password: cipher.login.password,
+    });
   }
 
   /** Open a vault item in the main window's vault view. */

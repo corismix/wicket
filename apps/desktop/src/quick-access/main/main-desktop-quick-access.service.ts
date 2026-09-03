@@ -3,6 +3,7 @@ import * as url from "url";
 
 import { app, BrowserWindow, globalShortcut, ipcMain, screen } from "electron";
 
+import { autotype_mvp } from "@bitwarden/desktop-napi";
 import { LogService } from "@bitwarden/logging";
 
 import { isMac } from "../../main/platform-utils.main";
@@ -12,6 +13,7 @@ import {
   QUICK_ACCESS_IPC_CHANNELS,
   QuickAccessCopyField,
   QuickAccessCopyResult,
+  QuickAccessFillExecute,
   QuickAccessState,
 } from "../models/ipc-channels";
 
@@ -117,6 +119,18 @@ export class MainDesktopQuickAccessService {
       void this.openItemInMainWindow(request?.id);
     });
 
+    ipcMain.on(QUICK_ACCESS_IPC_CHANNELS.FILL, (_event, request: { id: string }) => {
+      if (this.windowMain.win != null && !this.windowMain.win.isDestroyed()) {
+        this.windowMain.win.webContents.send(QUICK_ACCESS_IPC_CHANNELS.FILL_REQUEST, request);
+      } else {
+        this.failFill("Quick Access fill failed: the main window does not exist.");
+      }
+    });
+
+    ipcMain.on(QUICK_ACCESS_IPC_CHANNELS.FILL_EXECUTE, (_event, data: QuickAccessFillExecute) => {
+      this.executeFill(data);
+    });
+
     ipcMain.handle(QUICK_ACCESS_IPC_CHANNELS.SET_SHORTCUT, async (_event, accelerator: string) => {
       if (typeof accelerator !== "string" || accelerator.length === 0) {
         return { ok: false, accelerator: this.accelerator };
@@ -166,6 +180,43 @@ export class MainDesktopQuickAccessService {
     }
 
     void this.showPanel();
+  }
+
+  /**
+   * Type credentials into whatever the user was doing before Quick Access opened.
+   * Hides the panel first (which on macOS deactivates the app, returning focus to
+   * the invoking app), waits for focus to settle, then types via the native layer.
+   */
+  private executeFill(data: QuickAccessFillExecute) {
+    if (!data?.ok || data.username == null || data.password == null) {
+      this.failFill(data?.reason ?? "Quick Access fill failed.");
+      return;
+    }
+
+    this.hidePanel();
+
+    const username = data.username;
+    const password = data.password;
+
+    // Give macOS a beat to return focus to the previously active app before we
+    // start posting key events into it.
+    setTimeout(() => {
+      try {
+        autotype_mvp.typeInput(encodeUtf16(username + "\t" + password), []);
+      } catch (e) {
+        this.logService.error("Quick Access fill failed", e);
+        this.failFill(
+          "Could not type into the other app. Grant Wicket Accessibility access under System Settings > Privacy & Security > Accessibility, then restart Wicket.",
+        );
+      }
+    }, 250);
+  }
+
+  private failFill(message: string) {
+    void this.showPanel();
+    if (this.panel != null && !this.panel.isDestroyed()) {
+      this.panel.webContents.send(QUICK_ACCESS_IPC_CHANNELS.FILL_RESULT, { ok: false, message });
+    }
   }
 
   private async openItemInMainWindow(id: string) {
@@ -301,4 +352,12 @@ export class MainDesktopQuickAccessService {
 
     await this.panel.loadURL(this.getPanelUrl());
   }
+}
+
+function encodeUtf16(value: string): number[] {
+  const out = new Array<number>(value.length);
+  for (let i = 0; i < value.length; i++) {
+    out[i] = value.charCodeAt(i);
+  }
+  return out;
 }

@@ -4,6 +4,7 @@ import {
   QUICK_ACCESS_IPC_CHANNELS,
   QuickAccessCopyField,
   QuickAccessCopyResult,
+  QuickAccessFillExecute,
   QuickAccessState,
 } from "./models/ipc-channels";
 
@@ -35,6 +36,14 @@ const quickAccess = {
     ipcRenderer.on(QUICK_ACCESS_IPC_CHANNELS.OPEN_ITEM_REQUEST, (_event, request: { id: string }) =>
       fn(request),
     );
+  },
+  onFillRequest: (fn: (request: { id: string }) => void) => {
+    ipcRenderer.on(QUICK_ACCESS_IPC_CHANNELS.FILL_REQUEST, (_event, request: { id: string }) =>
+      fn(request),
+    );
+  },
+  sendFillExecute: (data: QuickAccessFillExecute) => {
+    ipcRenderer.send(QUICK_ACCESS_IPC_CHANNELS.FILL_EXECUTE, data);
   },
 };
 

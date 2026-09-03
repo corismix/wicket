@@ -26,6 +26,14 @@ export const QUICK_ACCESS_IPC_CHANNELS = {
   OPEN_ITEM: "quick-access.openItem",
   /** Main -> renderer (main window): navigate to + view a vault item. */
   OPEN_ITEM_REQUEST: "quick-access.openItemRequest",
+  /** Panel -> main: autofill (type) a vault item's credentials into the previously focused app. */
+  FILL: "quick-access.fill",
+  /** Main -> renderer (main window): supply the credentials for a fill. */
+  FILL_REQUEST: "quick-access.fillRequest",
+  /** Renderer (main window) -> main: the credentials to type, or why not. */
+  FILL_EXECUTE: "quick-access.fillExecute",
+  /** Main -> panel: fill failure to surface (success leaves the panel hidden). */
+  FILL_RESULT: "quick-access.fillResult",
 } as const;
 
 export type QuickAccessStatus = "loggedOut" | "locked" | "unlocked";
@@ -48,4 +56,18 @@ export interface QuickAccessCopyResult {
   id: string;
   field: QuickAccessCopyField;
   ok: boolean;
+}
+
+export interface QuickAccessFillExecute {
+  id: string;
+  ok: boolean;
+  username?: string | null;
+  password?: string | null;
+  /** Human-readable reason when ok is false. */
+  reason?: string;
+}
+
+export interface QuickAccessFillResult {
+  ok: boolean;
+  message: string;
 }
