@@ -146,10 +146,23 @@
       #footer {
         display: flex;
         justify-content: space-between;
-        padding: 7px 12px;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 10px;
         border-top: 1px solid var(--border);
         color: var(--text-dim);
         font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+      #footer #hints {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #footer kbd {
+        padding: 0 4px;
+        font-size: 10px;
       }
       #toast {
         position: absolute;
@@ -209,7 +222,7 @@
       <div id="results"></div>
       <div id="status-view"></div>
       <div id="footer">
-        <span><kbd>&#8593;</kbd><kbd>&#8595;</kbd> navigate &nbsp; <kbd>&#8629;</kbd> fill &nbsp; <kbd>&#8679;</kbd>+<kbd>&#8629;</kbd> copy password &nbsp; <kbd>&#8984;/Ctrl</kbd>+<kbd>&#8629;</kbd> copy username &nbsp; <kbd>&#8984;/Ctrl</kbd>+<kbd>O</kbd> open</span>
+        <span id="hints"></span>
         <span id="shortcut-label"></span>
       </div>
     </div>
@@ -336,13 +349,40 @@
         toastTimer = setTimeout(() => toastEl.classList.remove("visible"), 1800);
       }
 
+      const isMac = navigator.platform.includes("Mac");
+      const KEY = isMac
+        ? { mod: "\u2318", shift: "\u21E7", enter: "\u21B5", alt: "\u2325" }
+        : { mod: "Ctrl", shift: "Shift", enter: "Enter", alt: "Alt" };
+
+      function kbd(label) {
+        return `<kbd>${label}</kbd>`;
+      }
+
+      function renderHints() {
+        const joiner = isMac ? "" : "+";
+        document.getElementById("hints").innerHTML = [
+          `${kbd("\u2191")}${kbd("\u2193")} navigate`,
+          `${kbd(KEY.enter)} fill`,
+          `${kbd(KEY.shift)}${joiner}${kbd(KEY.enter)} password`,
+          `${kbd(KEY.mod)}${joiner}${kbd(KEY.enter)} username`,
+          `${kbd(KEY.mod)}${joiner}${kbd("O")} open`,
+        ].join(" ");
+      }
+
       function prettyAccelerator(acc) {
-        return acc.replace(/CommandOrControl/g, navigator.platform.includes("Mac") ? "Cmd" : "Ctrl");
+        const symbols = isMac
+          ? { CommandOrControl: KEY.mod, Command: KEY.mod, Cmd: KEY.mod, Control: "\u2303", Alt: KEY.alt, Shift: KEY.shift, Super: KEY.mod }
+          : { CommandOrControl: "Ctrl", Command: "Win", Cmd: "Win", Control: "Ctrl", Alt: "Alt", Shift: "Shift", Super: "Win" };
+        const joiner = isMac ? "" : "+";
+        return acc
+          .split("+")
+          .map((part) => symbols[part] ?? part)
+          .join(joiner);
       }
 
       async function refreshShortcutLabel() {
         const acc = await window.quickAccess.getShortcut();
-        shortcutLabelEl.textContent = prettyAccelerator(acc) + " to open";
+        shortcutLabelEl.textContent = prettyAccelerator(acc);
       }
 
       searchEl.addEventListener("input", () => {
@@ -473,6 +513,7 @@
 
       (async () => {
         state = await window.quickAccess.getState();
+        renderHints();
         refresh();
         await refreshShortcutLabel();
         searchEl.focus();
