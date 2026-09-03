@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as url from "url";
 
-import { BrowserWindow, globalShortcut, ipcMain, screen } from "electron";
+import { app, BrowserWindow, globalShortcut, ipcMain, screen } from "electron";
 
 import { LogService } from "@bitwarden/logging";
 
@@ -39,6 +39,10 @@ export class MainDesktopQuickAccessService {
   ) {}
 
   async init() {
+    // globalShortcut cannot be used before the app is ready, and Main constructs its
+    // services before that. Gate registration on app readiness.
+    await app.whenReady();
+
     const stored = await this.storageService.get<string>(SHORTCUT_STORAGE_KEY);
     if (typeof stored === "string" && stored.length > 0) {
       this.accelerator = stored;
