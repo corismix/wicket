@@ -5,6 +5,7 @@ import { app, BrowserWindow, globalShortcut, ipcMain, screen } from "electron";
 
 import { LogService } from "@bitwarden/logging";
 
+import { isMac } from "../../main/platform-utils.main";
 import { WindowMain } from "../../main/window.main";
 import { ElectronStorageService } from "../../platform/main/electron-storage.service";
 import {
@@ -165,8 +166,21 @@ export class MainDesktopQuickAccessService {
   }
 
   private hidePanel() {
+    // macOS focus hygiene: hiding the panel while it is the app's focused window
+    // reactivates the app and drops focus onto the main window, yanking the user
+    // out of whatever app they invoked Quick Access from. Deactivate the whole
+    // app so focus returns to the previously active app instead - unless focus
+    // has already moved into the main window (the user clicked into it), in
+    // which case leave the app active. Must be evaluated BEFORE hiding, since
+    // hiding can itself shift focus to the main window.
+    const focusIsInMainWindow = BrowserWindow.getFocusedWindow() === this.windowMain.win;
+
     if (this.panel != null && !this.panel.isDestroyed()) {
       this.panel.hide();
+    }
+
+    if (isMac() && !focusIsInMainWindow) {
+      app.hide();
     }
   }
 
