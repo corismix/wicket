@@ -71,6 +71,7 @@ import { ElectronLogMainService } from "./platform/services/electron-log.main.se
 import { EphemeralValueStorageService } from "./platform/services/ephemeral-value-storage.main.service";
 import { I18nMainService } from "./platform/services/i18n.main.service";
 import { IpcMainService } from "./platform/services/ipc.main.service";
+import { MainDesktopQuickAccessService } from "./quick-access/main/main-desktop-quick-access.service";
 import { ElectronMainMessagingService } from "./services/electron-main-messaging.service";
 import { MainSdkLoadService } from "./services/main-sdk-load-service";
 
@@ -107,6 +108,7 @@ export class Main {
   sshAgentService: MainSshAgentService;
   sdkLoadService: SdkLoadService;
   mainDesktopAutotypeMvpService: MainDesktopAutotypeMvpService;
+  mainDesktopQuickAccessService: MainDesktopQuickAccessService;
   ssoCookieMain: SsoCookieMain;
   ipcService: IpcService;
 
@@ -356,8 +358,18 @@ export class Main {
       this.windowMain,
     );
 
+    this.mainDesktopQuickAccessService = new MainDesktopQuickAccessService(
+      this.logService,
+      this.windowMain,
+      this.storageService,
+    );
+    // FIXME: Verify that this floating promise is intentional. If it is, add an explanatory comment and ensure there is proper error handling.
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.mainDesktopQuickAccessService.init();
+
     app.on("will-quit", () => {
       this.mainDesktopAutotypeMvpService.dispose();
+      this.mainDesktopQuickAccessService.dispose();
       this.storageService.dispose();
     });
   }

@@ -41,6 +41,10 @@ const DEFAULT_PARAMS = {
  *    entry: string;
  *    tsConfig: string;
  *  };
+ *  quickAccessPanel?: {
+ *    entry: string;
+ *    tsConfig: string;
+ *  };
  *  outputPath?: string;
  * }} params
  */
@@ -163,6 +167,7 @@ module.exports.buildConfig = function buildConfig(params) {
     },
     entry: {
       preload: params.preload.entry,
+      ...(params.quickAccessPanel && { quickAccessPanel: params.quickAccessPanel.entry }),
     },
     optimization: {
       minimize: false,
@@ -339,6 +344,16 @@ module.exports.buildConfig = function buildConfig(params) {
         filename: "index.html",
         chunks: ["app/vendor", "app/main"],
       }),
+      ...(params.quickAccessPanel
+        ? [
+            new HtmlWebpackPlugin({
+              template: path.resolve(__dirname, "src/quick-access/panel/panel.html"),
+              filename: "quick-access-panel.html",
+              inject: false,
+              chunks: [],
+            }),
+          ]
+        : []),
       new webpack.SourceMapDevToolPlugin({
         include: ["app/main.js"],
       }),

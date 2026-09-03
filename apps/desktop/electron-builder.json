@@ -1,10 +1,10 @@
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "extraMetadata": {
-    "name": "bitwarden"
+    "name": "wicket"
   },
-  "productName": "Bitwarden",
-  "appId": "com.bitwarden.desktop",
+  "productName": "Wicket",
+  "appId": "com.wicket.desktop",
   "buildDependenciesFromSource": true,
   "copyright": "Copyright © 2015-2026 Bitwarden Inc.",
   "directories": {
@@ -139,7 +139,7 @@
     "target": ["deb", "rpm", "AppImage", "snap"],
     "desktop": {
       "entry": {
-        "Name": "Bitwarden",
+        "Name": "Wicket",
         "Type": "Application",
         "GenericName": "Password Manager"
       }

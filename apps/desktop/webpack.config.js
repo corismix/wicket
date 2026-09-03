@@ -20,6 +20,10 @@ module.exports = (webpackConfig, context) => {
         entry: path.resolve(__dirname, "src/preload.ts"),
         tsConfig: path.resolve(context.context.root, "apps/desktop/tsconfig.preload.json"),
       },
+      quickAccessPanel: {
+        entry: path.resolve(__dirname, "src/quick-access/panel/preload.ts"),
+        tsConfig: path.resolve(context.context.root, "apps/desktop/tsconfig.preload.json"),
+      },
       outputPath: path.resolve(context.context.root, context.options.outputPath),
     });
   } else {
@@ -36,6 +40,10 @@ module.exports = (webpackConfig, context) => {
       },
       preload: {
         entry: path.resolve(__dirname, "src/preload.ts"),
+        tsConfig: path.resolve(__dirname, "tsconfig.preload.json"),
+      },
+      quickAccessPanel: {
+        entry: path.resolve(__dirname, "src/quick-access/panel/preload.ts"),
         tsConfig: path.resolve(__dirname, "tsconfig.preload.json"),
       },
     });

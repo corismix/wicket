@@ -3,7 +3,7 @@
   "extraMetadata": {
     "name": "bitwarden-beta"
   },
-  "productName": "Bitwarden Beta",
+  "productName": "Wicket Beta",
   "appId": "com.bitwarden.desktop.beta",
   "buildDependenciesFromSource": true,
   "copyright": "Copyright © 2015-2026 Bitwarden Inc.",

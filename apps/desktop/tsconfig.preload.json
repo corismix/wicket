@@ -1,4 +1,4 @@
 {
   "extends": "./tsconfig",
-  "include": ["src/preload.ts", "src/global.d.ts"]
+  "include": ["src/preload.ts", "src/quick-access/panel/preload.ts", "src/global.d.ts"]
 }

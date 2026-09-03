@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:"
+    />
+    <title>Quick Access</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #1b2029;
+        --bg-alt: #232936;
+        --border: #38415466;
+        --text: #f0f2f5;
+        --text-dim: #9aa3b2;
+        --accent: #175ddc;
+        --danger: #d9534f;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 14px;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      #container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      #search-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border);
+        -webkit-app-region: drag;
+      }
+      #search {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text);
+        font-size: 17px;
+        -webkit-app-region: no-drag;
+      }
+      #search::placeholder {
+        color: var(--text-dim);
+      }
+      #settings-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-dim);
+        font-size: 16px;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 6px;
+        -webkit-app-region: no-drag;
+      }
+      #settings-btn:hover {
+        background: var(--bg-alt);
+        color: var(--text);
+      }
+      #results {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px;
+      }
+      .item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: default;
+      }
+      .item.selected {
+        background: var(--accent);
+      }
+      .item .glyph {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        background: var(--bg-alt);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .item.selected .glyph {
+        background: #ffffff2b;
+      }
+      .item .text {
+        min-width: 0;
+        flex: 1;
+      }
+      .item .name {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .item .username {
+        color: var(--text-dim);
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .item.selected .username {
+        color: #ffffffcc;
+      }
+      .item .fav {
+        color: #e6b93f;
+      }
+      #status-view {
+        flex: 1;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: var(--text-dim);
+        text-align: center;
+        padding: 20px;
+      }
+      #status-view.visible {
+        display: flex;
+      }
+      #footer {
+        display: flex;
+        justify-content: space-between;
+        padding: 7px 12px;
+        border-top: 1px solid var(--border);
+        color: var(--text-dim);
+        font-size: 11px;
+      }
+      #toast {
+        position: absolute;
+        left: 50%;
+        bottom: 40px;
+        transform: translateX(-50%);
+        background: var(--bg-alt);
+        border: 1px solid var(--border);
+        padding: 6px 14px;
+        border-radius: 16px;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.15s;
+        pointer-events: none;
+      }
+      #toast.visible {
+        opacity: 1;
+      }
+      #shortcut-overlay {
+        position: absolute;
+        inset: 0;
+        background: #000a;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        z-index: 10;
+      }
+      #shortcut-overlay.visible {
+        display: flex;
+      }
+      #shortcut-overlay .hint {
+        color: var(--text-dim);
+        font-size: 12px;
+      }
+      #shortcut-current {
+        font-size: 18px;
+        font-weight: 600;
+      }
+      kbd {
+        background: var(--bg-alt);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-size: 11px;
+        font-family: inherit;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="search-row">
+        <input id="search" type="text" placeholder="Search Bitwarden..." autocomplete="off" />
+        <button id="settings-btn" title="Change shortcut">&#9881;</button>
+      </div>
+      <div id="results"></div>
+      <div id="status-view"></div>
+      <div id="footer">
+        <span><kbd>&#8593;</kbd><kbd>&#8595;</kbd> navigate &nbsp; <kbd>&#8629;</kbd> copy password &nbsp; <kbd>&#8984;/Ctrl</kbd>+<kbd>&#8629;</kbd> copy username</span>
+        <span id="shortcut-label"></span>
+      </div>
+    </div>
+    <div id="toast"></div>
+    <div id="shortcut-overlay">
+      <div>Press your new global shortcut</div>
+      <div id="shortcut-current"></div>
+      <div class="hint">Must include Ctrl/Alt/Shift/Cmd plus a key &middot; Esc to cancel</div>
+    </div>
+    <script>
+      const searchEl = document.getElementById("search");
+      const resultsEl = document.getElementById("results");
+      const statusEl = document.getElementById("status-view");
+      const toastEl = document.getElementById("toast");
+      const overlayEl = document.getElementById("shortcut-overlay");
+      const shortcutCurrentEl = document.getElementById("shortcut-current");
+      const shortcutLabelEl = document.getElementById("shortcut-label");
+
+      let state = { status: "loggedOut", items: [] };
+      let filtered = [];
+      let selectedIndex = 0;
+      let toastTimer = null;
+
+      function fuzzyMatch(item, query) {
+        const hay = (item.name + " " + (item.username || "")).toLowerCase();
+        return query
+          .toLowerCase()
+          .split(/\s+/)
+          .filter(Boolean)
+          .every((term) => hay.includes(term));
+      }
+
+      function refresh() {
+        if (state.status !== "unlocked") {
+          resultsEl.innerHTML = "";
+          statusEl.classList.add("visible");
+          statusEl.innerHTML =
+            state.status === "locked"
+              ? "<div>Your vault is locked.</div><div>Unlock Bitwarden in the main window to use Quick Access.</div>"
+              : "<div>You are logged out.</div><div>Log in to Bitwarden in the main window to use Quick Access.</div>";
+          return;
+        }
+
+        statusEl.classList.remove("visible");
+        const query = searchEl.value.trim();
+        filtered = state.items
+          .filter((item) => query === "" || fuzzyMatch(item, query))
+          .sort((a, b) => Number(b.favorite) - Number(a.favorite) || a.name.localeCompare(b.name))
+          .slice(0, 50);
+
+        if (filtered.length === 0) {
+          resultsEl.innerHTML = "";
+          statusEl.classList.add("visible");
+          statusEl.innerHTML = "<div>No results</div>";
+          return;
+        }
+
+        selectedIndex = Math.min(selectedIndex, filtered.length - 1);
+        resultsEl.innerHTML = filtered
+          .map((item, i) => {
+            const initial = (item.name || "?").charAt(0).toUpperCase();
+            return (
+              '<div class="item' +
+              (i === selectedIndex ? " selected" : "") +
+              '" data-index="' +
+              i +
+              '">' +
+              '<div class="glyph">' +
+              escapeHtml(initial) +
+              "</div>" +
+              '<div class="text"><div class="name">' +
+              (item.favorite ? '<span class="fav">&#9733;</span> ' : "") +
+              escapeHtml(item.name) +
+              '</div><div class="username">' +
+              escapeHtml(item.username || "") +
+              "</div></div></div>"
+            );
+          })
+          .join("");
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, (c) => "&#" + c.charCodeAt(0) + ";");
+      }
+
+      function moveSelection(delta) {
+        if (filtered.length === 0) {
+          return;
+        }
+        selectedIndex = (selectedIndex + delta + filtered.length) % filtered.length;
+        resultsEl.querySelectorAll(".item").forEach((el, i) => {
+          el.classList.toggle("selected", i === selectedIndex);
+          if (i === selectedIndex) {
+            el.scrollIntoView({ block: "nearest" });
+          }
+        });
+      }
+
+      function copySelected(field) {
+        const item = filtered[selectedIndex];
+        if (item) {
+          window.quickAccess.copy(item.id, field);
+        }
+      }
+
+      function showToast(message) {
+        toastEl.textContent = message;
+        toastEl.classList.add("visible");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove("visible"), 1800);
+      }
+
+      function prettyAccelerator(acc) {
+        return acc.replace(/CommandOrControl/g, navigator.platform.includes("Mac") ? "Cmd" : "Ctrl");
+      }
+
+      async function refreshShortcutLabel() {
+        const acc = await window.quickAccess.getShortcut();
+        shortcutLabelEl.textContent = prettyAccelerator(acc) + " to open";
+      }
+
+      searchEl.addEventListener("input", () => {
+        selectedIndex = 0;
+        refresh();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (overlayEl.classList.contains("visible")) {
+          captureShortcut(e);
+          return;
+        }
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          moveSelection(1);
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          moveSelection(-1);
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          copySelected(e.metaKey || e.ctrlKey ? "username" : "password");
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          window.quickAccess.hide();
+        }
+      });
+
+      resultsEl.addEventListener("click", (e) => {
+        const row = e.target.closest(".item");
+        if (row) {
+          selectedIndex = Number(row.dataset.index);
+          copySelected("password");
+        }
+      });
+
+      document.getElementById("settings-btn").addEventListener("click", async () => {
+        shortcutCurrentEl.textContent = "";
+        overlayEl.classList.add("visible");
+      });
+
+      function eventToAccelerator(e) {
+        const parts = [];
+        if (e.ctrlKey || e.metaKey) {
+          parts.push("CommandOrControl");
+        }
+        if (e.altKey) {
+          parts.push("Alt");
+        }
+        if (e.shiftKey) {
+          parts.push("Shift");
+        }
+        let key = e.key;
+        if (["Control", "Meta", "Alt", "Shift"].includes(key)) {
+          return null;
+        }
+        if (key === " ") {
+          key = "Space";
+        } else if (key.length === 1) {
+          key = key.toUpperCase();
+        }
+        if (parts.length === 0) {
+          return null;
+        }
+        parts.push(key);
+        return parts.join("+");
+      }
+
+      async function captureShortcut(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.key === "Escape") {
+          overlayEl.classList.remove("visible");
+          searchEl.focus();
+          return;
+        }
+        const acc = eventToAccelerator(e);
+        if (acc == null) {
+          return;
+        }
+        shortcutCurrentEl.textContent = prettyAccelerator(acc);
+        const result = await window.quickAccess.setShortcut(acc);
+        if (result.ok) {
+          showToast("Shortcut updated");
+          overlayEl.classList.remove("visible");
+          searchEl.focus();
+          await refreshShortcutLabel();
+        } else {
+          showToast("That shortcut is unavailable");
+        }
+      }
+
+      window.quickAccess.onStateChanged((newState) => {
+        state = newState;
+        refresh();
+      });
+
+      window.quickAccess.onCopyResult((result) => {
+        if (result.ok) {
+          showToast(result.field === "password" ? "Password copied" : "Username copied");
+          setTimeout(() => window.quickAccess.hide(), 350);
+        } else {
+          showToast("Could not copy " + result.field);
+        }
+      });
+
+      (async () => {
+        state = await window.quickAccess.getState();
+        refresh();
+        await refreshShortcutLabel();
+        searchEl.focus();
+      })();
+    </script>
+  </body>
+</html>
